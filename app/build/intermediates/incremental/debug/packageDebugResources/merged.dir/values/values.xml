@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#20003F</color>
+    <style name="Theme.DroneController" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:colorAccent">#66E3FF</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#071118</item>
+        <item name="android:navigationBarColor">#071118</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>
