@@ -19,13 +19,28 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Anchor
+import androidx.compose.material.icons.filled.Balance
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CenterFocusStrong
+import androidx.compose.material.icons.filled.FileDownloadDone
+import androidx.compose.material.icons.filled.FlightTakeoff
+import androidx.compose.material.icons.filled.Gesture
 import androidx.compose.material.icons.filled.Height
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.SportsMotorsports
+import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.Terrain
+import androidx.compose.material.icons.filled.VerticalAlignCenter
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
@@ -38,6 +53,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,7 +87,9 @@ fun MainScreen(
             onMenu = viewModel::toggleConsole,
             onBuzzer = viewModel::toggleBuzzer,
             onLeftStick = viewModel::updateLeftJoystick,
-            onRightStick = viewModel::updateRightJoystick
+            onRightStick = viewModel::updateRightJoystick,
+            onNavWp = viewModel::toggleNavWp,
+            onDrop = viewModel::dropPayload
         )
     }
 }
@@ -84,10 +102,12 @@ private fun DroneControlSurface(
     onArmToggle: () -> Unit,
     onMode: () -> Unit,
     onAltHold: () -> Unit,
+    onNavWp: () -> Unit,
     onMenu: () -> Unit,
     onBuzzer: () -> Unit,
     onLeftStick: (com.example.dronecontroller.model.JoystickValue) -> Unit,
-    onRightStick: (com.example.dronecontroller.model.JoystickValue) -> Unit
+    onRightStick: (com.example.dronecontroller.model.JoystickValue) -> Unit,
+    onDrop: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -142,7 +162,7 @@ private fun DroneControlSurface(
                 Text(if (state.connectionState == ConnectionState.CONNECTED) "DISCONNECT" else "CONNECT", fontSize = 11.sp)
             }
             IconButton(onClick = onSettings, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Settings, "Settings", modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Settings, "Settings", modifier = Modifier.size(20.dp), tint = Color.White)
             }
         }
 
@@ -157,14 +177,17 @@ private fun DroneControlSurface(
                 modifier = Modifier.weight(0.9f).fillMaxHeight(),
                 onValueChange = onLeftStick,
                 returnToCenterOnRelease = !state.settings.holdThrottleY,
-                accent = Color(0xFF66E3FF)
+                accent = Color(0xFF66E3FF),
+                throttleFromBottom = state.settings.throttleFromBottom
             )
             CenterConsole(
                 state = state,
                 onMode = onMode,
                 onAltHold = onAltHold,
+                onNavWp = onNavWp,
                 onMenu = onMenu,
                 onBuzzer = onBuzzer,
+                onDrop = onDrop,
                 modifier = Modifier.weight(1.4f).fillMaxHeight()
             )
             StickPane(
@@ -184,6 +207,7 @@ private fun StickPane(
     modifier: Modifier,
     returnToCenterOnRelease: Boolean,
     accent: Color,
+    throttleFromBottom: Boolean = false,
     onValueChange: (com.example.dronecontroller.model.JoystickValue) -> Unit
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
@@ -205,6 +229,7 @@ private fun StickPane(
                     title = title,
                     returnToCenterOnRelease = returnToCenterOnRelease,
                     accent = accent,
+                    throttleFromBottom = throttleFromBottom,
                     onValueChange = onValueChange
                 )
             }
@@ -214,12 +239,14 @@ private fun StickPane(
 
 @Composable
 private fun CenterConsole(
+    onNavWp: () -> Unit,
     state: DroneUiState,
     onMode: () -> Unit,
     onAltHold: () -> Unit,
     onMenu: () -> Unit,
     onBuzzer: () -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
+    onDrop: () -> Unit,
 ) {
     val listState = rememberLazyListState()
     LaunchedEffect(state.consoleLines.size) {
@@ -230,36 +257,54 @@ private fun CenterConsole(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onMode, modifier = Modifier.size(34.dp)) {
+            IconButton(onClick = onMode, modifier = Modifier.size(54.dp)) {
                 Icon(
-                    Icons.Default.Build,
+                    if (state.mode == "STABILIZE") Icons.Default.CenterFocusStrong else Icons.Default.SportsEsports,
                     contentDescription = "Mode toggle: ${state.mode}",
                     tint = if (state.mode == "STABILIZE") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(38.dp)
                 )
             }
-            IconButton(onClick = onAltHold, modifier = Modifier.size(34.dp)) {
+            IconButton(onClick = onAltHold, modifier = Modifier.size(54.dp)) {
                 Icon(
-                    Icons.Default.Height,
+                    if (state.altHoldOn) Icons.Default.VerticalAlignCenter else Icons.Default.Height,
                     contentDescription = "Altitude hold toggle",
                     tint = if (state.altHoldOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(38.dp)
                 )
             }
-            IconButton(onClick = onMenu, modifier = Modifier.size(34.dp)) {
-                Icon(Icons.Default.Menu, "Menu and log toggle", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(19.dp))
+            IconButton(onClick = onMenu, modifier = Modifier.size(44.dp)) {
+                Icon(Icons.Default.Menu, "Menu and log toggle", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(29.dp))
             }
-            IconButton(onClick = onBuzzer, modifier = Modifier.size(34.dp)) {
+            IconButton(onClick = onBuzzer, modifier = Modifier.size(54.dp)) {
                 Icon(
                     Icons.Default.NotificationsActive,
                     contentDescription = "Buzzer toggle",
                     tint = if (state.buzzerOn) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            IconButton(onClick = onNavWp, modifier = Modifier.size(44.dp)) {
+                Icon(
+                    Icons.Default.Route,
+                    contentDescription = "Waypoint mission toggle",
+                    tint = if (state.navWpOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            IconButton(onClick = onDrop, modifier = Modifier.size(44.dp)) {
+                Icon(
+                    if (state.payloadDropped) Icons.Default.FileDownloadDone else Icons.Default.Anchor,
+                    contentDescription = "Drop payload",
+                    tint = if (state.payloadDropped) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }
         Text(
-            "MODE: ${state.mode}" + if (state.altHoldOn) "  •  ALT HOLD" else "",
+            "MODE: ${state.mode}" +
+                    (if (state.altHoldOn) "  •  ALT HOLD" else "") +
+                    (if (state.navWpOn) "  •  WAYPOINT" else ""),
             fontSize = 9.sp,
             fontWeight = FontWeight.SemiBold,
             color = if (state.mode == "STABILIZE") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,

@@ -16,6 +16,8 @@ import com.example.dronecontroller.model.JoystickValue
 import com.example.dronecontroller.model.Telemetry
 import com.example.dronecontroller.model.TelemetryPacket
 import com.example.dronecontroller.model.ModeCommandPacket
+import com.example.dronecontroller.model.NavWpCommandPacket
+import com.example.dronecontroller.model.ServoCommandPacket
 import com.example.dronecontroller.network.SocketEvent
 import com.example.dronecontroller.network.WebSocketManager
 import kotlinx.coroutines.Dispatchers
@@ -166,6 +168,23 @@ class DroneViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun toggleNavWp() {
+        val enabled = !_uiState.value.navWpOn
+        _uiState.update { it.copy(navWpOn = enabled) }
+        if (_uiState.value.connectionState == ConnectionState.CONNECTED) {
+            socketManager.send(json.encodeToString(NavWpCommandPacket("navwp", enabled)))
+            appendConsole("SYS: Waypoint mission ${if (enabled) "started" else "stopped"}")
+        }
+    }
+
+    fun dropPayload() {
+        val dropped = !_uiState.value.payloadDropped
+        _uiState.update { it.copy(payloadDropped = dropped) }
+        if (_uiState.value.connectionState == ConnectionState.CONNECTED) {
+            socketManager.send(json.encodeToString(ServoCommandPacket(servo = if (dropped) 180 else 90)))
+            appendConsole(if (dropped) "SYS: Payload drop triggered" else "SYS: Hook reset")
+        }
+    }
     private suspend fun sendControlFrame() {
         val state = _uiState.value
         if (state.connectionState != ConnectionState.CONNECTED) return

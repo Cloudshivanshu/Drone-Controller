@@ -56,7 +56,7 @@ fun SettingsScreen(
     var port by remember(stored.esp32Port) { mutableStateOf(stored.esp32Port.toString()) }
     var holdThrottleY by remember(stored.holdThrottleY) { mutableStateOf(stored.holdThrottleY) }
     var autoReconnect by remember(stored.autoReconnect) { mutableStateOf(stored.autoReconnect) }
-
+    var throttleFromBottom by remember(stored.throttleFromBottom) { mutableStateOf(stored.throttleFromBottom) }
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -106,6 +106,7 @@ fun SettingsScreen(
             )
             Spacer(Modifier.height(14.dp))
             SettingToggle("Hold throttle Y on release", holdThrottleY) { holdThrottleY = it }
+            SettingToggle("Throttle starts from bottom (full range)", throttleFromBottom) { throttleFromBottom = it }
             SettingToggle("Auto-reconnect link", autoReconnect) { autoReconnect = it }
             Spacer(Modifier.height(20.dp))
             Button(
@@ -115,7 +116,8 @@ fun SettingsScreen(
                             esp32Host = host,
                             esp32Port = port.toIntOrNull()?.coerceIn(1, 65535) ?: 81,
                             holdThrottleY = holdThrottleY,
-                            autoReconnect = autoReconnect
+                            autoReconnect = autoReconnect,
+                            throttleFromBottom = throttleFromBottom
                         )
                     )
                     onBack()
@@ -162,7 +164,6 @@ fun SettingsScreen(
         }
     }
 }
-
 @Composable
 private fun SettingToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(

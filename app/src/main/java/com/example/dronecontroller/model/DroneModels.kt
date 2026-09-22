@@ -10,11 +10,13 @@ enum class ConnectionState {
 }
 
 data class AppSettings(
-    val esp32Host: String = "192.168.4.1",
+    val esp32Host: String = "",
     val esp32Port: Int = 81,
     val holdThrottleY: Boolean = true,
-    val autoReconnect: Boolean = true
-) {
+    val autoReconnect: Boolean = true,
+    val throttleFromBottom: Boolean = false
+)
+{
     val websocketUrl: String
         get() = "ws://$esp32Host:$esp32Port/"
 }
@@ -59,9 +61,16 @@ data class DroneUiState(
     val armed: Boolean = false,
     val failsafe: Boolean = false,
     val lastTelemetryAt: Long? = null,
-    val altHoldOn: Boolean = false
+    val altHoldOn: Boolean = false,
+    val navWpOn: Boolean = false,
+    val payloadDropped: Boolean = false
 )
 
+@Serializable
+data class NavWpCommandPacket(val cmd: String, val enabled: Boolean)
+
+@Serializable
+data class ServoCommandPacket(val servo: Int)
 @Serializable
 data class ControlPacket(
     val throttle: Int,
